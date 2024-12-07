@@ -1,0 +1,41 @@
+package net.mitask.riptidefix.mixin;
+
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.Vec3d;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+
+@Mixin(LivingEntity.class)
+public abstract class TridentFixMixin {
+    @Shadow protected abstract float getBaseMovementSpeedMultiplier();
+    @Shadow protected int riptideTicks;
+
+    @WrapOperation(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;multiply(DDD)Lnet/minecraft/util/math/Vec3d;"))
+    private Vec3d riptideFix_travel(Vec3d instance, double x, double y, double z, Operation<Vec3d> original) {
+        LivingEntity entity = LivingEntity.class.cast(this);
+
+        float f = entity.isSprinting() ? 0.9F : getBaseMovementSpeedMultiplier();
+        float h = (float)entity.getAttributeValue(EntityAttributes.GENERIC_WATER_MOVEMENT_EFFICIENCY);
+        if (!entity.isOnGround()) {
+            h *= 0.5F;
+        }
+
+        if (h > 0.0f) {
+            if (riptideTicks == 0) {
+                f += (0.54600006F - f) * h;
+            }
+        }
+
+        if (entity.hasStatusEffect(StatusEffects.DOLPHINS_GRACE)) {
+            f = 0.96F;
+        }
+
+        return instance.multiply(f, y, f);
+    }
+}
