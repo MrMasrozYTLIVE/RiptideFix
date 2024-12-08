@@ -6,6 +6,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.FluidState;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,9 +17,13 @@ public abstract class TridentFixMixin {
     @Shadow protected abstract float getBaseMovementSpeedMultiplier();
     @Shadow protected int riptideTicks;
 
+    @Shadow protected abstract boolean shouldSwimInFluids();
+
     @WrapOperation(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;multiply(DDD)Lnet/minecraft/util/math/Vec3d;"))
     private Vec3d riptideFix_travel(Vec3d instance, double x, double y, double z, Operation<Vec3d> original) {
         LivingEntity entity = LivingEntity.class.cast(this);
+        FluidState fluidState = entity.getWorld().getFluidState(entity.getBlockPos());
+        if (!entity.isTouchingWater() || !shouldSwimInFluids() || entity.canWalkOnFluid(fluidState)) return instance.multiply(x, y, z);
 
         float f = entity.isSprinting() ? 0.9F : getBaseMovementSpeedMultiplier();
         float h = (float)entity.getAttributeValue(EntityAttributes.GENERIC_WATER_MOVEMENT_EFFICIENCY);
