@@ -14,19 +14,18 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(LivingEntity.class)
 public abstract class TridentFixMixin {
-    @Shadow protected abstract float getBaseMovementSpeedMultiplier();
     @Shadow protected int riptideTicks;
+    @Shadow public abstract boolean shouldSwimInFluids();
+    @Shadow protected abstract float getBaseWaterMovementSpeedMultiplier();
 
-    @Shadow protected abstract boolean shouldSwimInFluids();
-
-    @WrapOperation(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;multiply(DDD)Lnet/minecraft/util/math/Vec3d;"))
-    private Vec3d riptideFix_travel(Vec3d instance, double x, double y, double z, Operation<Vec3d> original) {
+    @WrapOperation(method = "travelInWater", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;multiply(DDD)Lnet/minecraft/util/math/Vec3d;"))
+    private Vec3d riptideFix_travelInWater(Vec3d instance, double x, double y, double z, Operation<Vec3d> original) {
         LivingEntity entity = LivingEntity.class.cast(this);
-        FluidState fluidState = entity.getWorld().getFluidState(entity.getBlockPos());
+        FluidState fluidState = entity.getEntityWorld().getFluidState(entity.getBlockPos());
         if (!entity.isTouchingWater() || !shouldSwimInFluids() || entity.canWalkOnFluid(fluidState)) return instance.multiply(x, y, z);
 
-        float f = entity.isSprinting() ? 0.9F : getBaseMovementSpeedMultiplier();
-        float h = (float)entity.getAttributeValue(EntityAttributes.GENERIC_WATER_MOVEMENT_EFFICIENCY);
+        float f = entity.isSprinting() ? 0.9F : getBaseWaterMovementSpeedMultiplier();
+        float h = (float)entity.getAttributeValue(EntityAttributes.WATER_MOVEMENT_EFFICIENCY);
         if (!entity.isOnGround()) {
             h *= 0.5F;
         }

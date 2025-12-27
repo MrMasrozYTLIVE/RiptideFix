@@ -1,6 +1,6 @@
 plugins {
-    id 'fabric-loom' version '1.9-SNAPSHOT'
-    id 'maven-publish'
+    id 'fabric-loom' version '1.14-SNAPSHOT'
+    id "com.hypherionmc.modutils.modpublisher" version "2.1.8+snapshot.4"
 }
 
 version = project.mod_version
@@ -9,7 +9,6 @@ group = project.maven_group
 base {
     archivesName = project.archives_base_name
 }
-
 
 repositories {
     // Add repositories to retrieve artifacts from in here.
@@ -24,7 +23,6 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
 }
 
 processResources {
@@ -69,20 +67,30 @@ jar {
     }
 }
 
-// configure the maven publication
-publishing {
-    publications {
-        create("mavenJava", MavenPublication) {
-            artifactId = project.archives_base_name
-            from components.java
-        }
+publisher {
+    apiKeys {
+        modrinth System.getenv("MODRINTH_TOKEN")
+        github System.getenv("GITHUB_TOKEN")
     }
 
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-        // Notice: This block does NOT have the same function as the block in the top level.
-        // The repositories here will be used for publishing your artifact, not for
-        // retrieving dependencies.
+//    setDebug(true)
+    setModrinthID(project.modrinth_id)
+    setVersionType(project.version_type)
+
+    github {
+        repo = project.github_repo
+        tag = "${project.minecraft_version}-${project.version}"
     }
+
+    // Changelog. This can be a file, string, OR, gist/github url
+    // For example: markdown.md, or "This is my changelog"
+    // Or: https://raw.githubusercontent.com/hypherionmc/changelogs/changelog.md
+    // Or https://gist.githubusercontent.com/hypherionmc/92f825d3c9337964cc77c9c8c9bf65e6/raw/ceeaaee5b98c688a23398864fe480b84796a1651/test_gist.md
+    setChangelog(file("changelog.md").text)
+
+    setProjectVersion("${project.minecraft_version}-${project.version}")
+    setGameVersions(project.minecraft_version)
+    setLoaders("fabric")
+    setArtifact(jar)
+    addAdditionalFile(sourcesJar)
 }
