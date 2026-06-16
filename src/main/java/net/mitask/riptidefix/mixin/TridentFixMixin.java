@@ -2,41 +2,40 @@ package net.mitask.riptidefix.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(LivingEntity.class)
 public abstract class TridentFixMixin {
-    @Shadow protected int riptideTicks;
-    @Shadow public abstract boolean shouldSwimInFluids();
-    @Shadow protected abstract float getBaseWaterMovementSpeedMultiplier();
+    @Shadow protected int autoSpinAttackTicks;
+    @Shadow public abstract boolean isAffectedByFluids();
+    @Shadow protected abstract float getWaterSlowDown();
 
-    @WrapOperation(method = "travelInWater", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;multiply(DDD)Lnet/minecraft/util/math/Vec3d;"))
-    private Vec3d riptideFix_travelInWater(Vec3d instance, double x, double y, double z, Operation<Vec3d> original) {
+    @WrapOperation(method = "travelInWater", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/phys/Vec3;multiply(DDD)Lnet/minecraft/world/phys/Vec3;"))
+    private Vec3 riptideFix_travelInWater(Vec3 instance, double x, double y, double z, Operation<Vec3> original) {
         LivingEntity entity = LivingEntity.class.cast(this);
-        FluidState fluidState = entity.getEntityWorld().getFluidState(entity.getBlockPos());
-        if (!entity.isTouchingWater() || !shouldSwimInFluids() || entity.canWalkOnFluid(fluidState)) return instance.multiply(x, y, z);
+        FluidState fluidState = entity.level().getFluidState(entity.blockPosition());
+        if (!entity.isInWater() || !isAffectedByFluids() || entity.canStandOnFluid(fluidState)) return instance.multiply(x, y, z);
 
-        float f = entity.isSprinting() ? 0.9F : getBaseWaterMovementSpeedMultiplier();
-        float h = (float)entity.getAttributeValue(EntityAttributes.WATER_MOVEMENT_EFFICIENCY);
-        if (!entity.isOnGround()) {
+        float f = entity.isSprinting() ? 0.9F : getWaterSlowDown();
+        float h = (float)entity.getAttributeValue(Attributes.WATER_MOVEMENT_EFFICIENCY);
+        if (!entity.onGround()) {
             h *= 0.5F;
         }
 
         if (h > 0.0f) {
-            if (riptideTicks == 0) {
+            if (autoSpinAttackTicks == 0) {
                 f += (0.54600006F - f) * h;
             }
         }
 
-        if (entity.hasStatusEffect(StatusEffects.DOLPHINS_GRACE)) {
+        if (entity.hasEffect(MobEffects.DOLPHINS_GRACE)) {
             f = 0.96F;
         }
 
